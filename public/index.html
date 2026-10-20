@@ -359,7 +359,8 @@ const watched=new Set();
 let cart=ls("a2z_cart")||[];
 
 async function api(path,opts={}){
-  const r=await fetch(path,{method:opts.method||"GET",headers:opts.body?{"Content-Type":"application/json"}:{},body:opts.body?JSON.stringify(opts.body):undefined,credentials:"same-origin"});
+  const url="/api/index?route="+encodeURIComponent(path.replace(/^\/api\//,""));
+  const r=await fetch(url,{method:opts.method||"GET",headers:opts.body?{"Content-Type":"application/json"}:{},body:opts.body?JSON.stringify(opts.body):undefined,credentials:"same-origin"});
   if(r.status===401 && !path.endsWith("/login")){ showLogin(); throw {code:401} }
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw {code:r.status,message:j.error||"Request failed"};

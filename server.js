@@ -26,7 +26,9 @@ function serveStatic(req, res, pathname) {
 // One request at a time, so the file store never races.
 let queue = Promise.resolve();
 http.createServer((req, res) => {
-  const { pathname } = new URL(req.url, "http://x");
+  const u = new URL(req.url, "http://x");
+  const route = u.searchParams.get("route");
+  const pathname = u.pathname === "/api/index" && route ? (route === "healthz" ? "/healthz" : "/api/" + route) : u.pathname;
   if (pathname !== "/healthz" && !pathname.startsWith("/api/")) return serveStatic(req, res, pathname);
   queue = queue.then(() => safeHandle(req, res, pathname));
 }).listen(PORT, () => console.log(`A2Z billing running on http://localhost:${PORT} (storage: ${store.kind})`));

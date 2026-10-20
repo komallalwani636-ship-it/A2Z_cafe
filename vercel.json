@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/healthz", "destination": "/api/index?route=healthz" },
-    { "source": "/api/:path((?!index$).*)", "destination": "/api/index?route=:path" }
+    { "source": "/healthz", "destination": "/api/index?route=healthz" }
   ]
 }
