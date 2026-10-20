@@ -57,7 +57,8 @@ body{margin:0}
   #printArea .r{text-align:right;white-space:nowrap}
   #printArea .big td{font-weight:bold;font-size:15px}
 }
-body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+body{background:var(--bg);color:var(--ink);font:17px/1.45 var(--body)}
+.wrap,header.top{zoom:var(--ui-zoom,1)}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
@@ -70,7 +71,7 @@ header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;ju
 .brand h1 span{color:var(--yellow)}
 .tag{background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:11px;padding:2px 8px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase}
 nav.tabs{display:flex;gap:4px;background:rgba(0,0,0,.18);padding:4px;border-radius:10px;flex-wrap:wrap}
-nav.tabs button{border:0;background:transparent;color:inherit;padding:7px 14px;border-radius:7px;font-weight:800}
+nav.tabs button{border:0;background:transparent;color:inherit;padding:9px 16px;border-radius:7px;font-weight:800;font-size:16px}
 nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--yellow-ink)}
 .status{font-size:12px;opacity:.9}
 
@@ -85,63 +86,73 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--yello
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
 .view{padding-block:16px}
-.billing{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px}
+.billing{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px}
 @media (max-width:920px){.billing{grid-template-columns:1fr}}
 
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.toolbar input{flex:1 1 200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.toolbar input{flex:1 1 200px;padding:11px 14px;font-size:17px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:800}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:8px 16px;font-size:16px;font-weight:800}
 .chip[aria-pressed="true"]{background:var(--green);color:var(--green-ink);border-color:var(--green)}
 section.cat{margin-bottom:18px}
-section.cat h2{font:800 20px/1 var(--display);margin:0 0 8px;color:var(--green);display:flex;align-items:baseline;gap:8px}
+section.cat h2{font:800 26px/1 var(--display);margin:0 0 8px;color:var(--green);display:flex;align-items:baseline;gap:8px}
 .count{font:600 12px var(--body);color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
-.item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:72px;position:relative}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+@media (max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0;text-align:left;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.item .pic{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--sunk)}
+.item .ph{width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:var(--green-soft);color:var(--green);font:800 40px var(--display)}
+.item .body{padding:8px 12px 10px;display:flex;flex-direction:column;gap:2px;flex:1}
 .item:hover{border-color:var(--green)}
 .item:active{transform:scale(.98)}
-.item .name{font-weight:800;line-height:1.25;padding-right:28px}
-.item .desc{font-size:12px;color:var(--muted)}
-.item .price{margin-top:auto;font:600 14px var(--mono);color:var(--green)}
-.inbill{position:absolute;top:7px;right:8px;background:var(--yellow);color:var(--yellow-ink);font:700 11px var(--mono);border-radius:99px;padding:1px 7px}
+.item .name{font-weight:800;font-size:18px;line-height:1.25}
+.item .desc{font-size:14px;color:var(--muted)}
+.item .price{margin-top:auto;font:700 18px var(--mono);color:var(--green)}
+.inbill{position:absolute;top:8px;right:8px;background:var(--yellow);color:var(--yellow-ink);font:800 15px var(--mono);border-radius:99px;padding:3px 10px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 
 .edit-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
 .edit-row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:6px;align-items:center}
 .edit-row input{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk)}
-.edit-row .desc-in{grid-column:1 / 3;font-size:12px}
+.edit-row .desc-in{grid-column:1 / 3;font-size:14px}
+.edit-row{grid-template-columns:64px minmax(0,1fr) 84px auto!important}
+.edit-row .thumb{grid-row:span 2;width:64px;height:64px;border-radius:8px;object-fit:cover;background:var(--sunk);display:block}
+.edit-row .desc-in{grid-column:2 / 4!important}
+.edit-row .photo-actions{display:flex;flex-direction:column;gap:4px}
+.edit-row input[type=file]{display:none}
 .add-box{background:var(--green-soft);border:1px dashed var(--green);border-radius:10px;padding:12px;margin-bottom:16px}
 .add-box h3{margin:0 0 8px;font:800 17px var(--display);color:var(--green)}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end}
-label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800;color:var(--muted);min-width:0}
-label.f input,label.f select{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk);min-width:0;width:100%}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:14px;font-weight:800;color:var(--muted);min-width:0}
+label.f input,label.f select{padding:9px 10px;font-size:16px;border:1px solid var(--line);border-radius:6px;background:var(--sunk);min-width:0;width:100%}
 
-aside.bill{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;align-self:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:12px}
+aside.bill{font-size:17px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;align-self:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:12px}
 @media (max-width:920px){aside.bill{position:static}}
 .bill-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.bill-head h2{margin:0;font:800 22px var(--display)}
+.bill-head h2{margin:0;font:800 28px var(--display)}
 .mono{font-family:var(--mono)}
 .muted{color:var(--muted)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .lines{display:flex;flex-direction:column;border-top:1px solid var(--line);max-height:40vh;overflow:auto}
-.line{display:grid;grid-template-columns:minmax(0,1fr) auto 70px 22px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.line .ln{font-weight:800;font-size:14px;line-height:1.2}
-.line .lp{font:12px var(--mono);color:var(--muted)}
-.line .lt{font:600 14px var(--mono);text-align:right}
+.line{display:grid;grid-template-columns:minmax(0,1fr) auto 84px 26px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.line .ln{font-weight:800;font-size:17px;line-height:1.2}
+.line .lp{font:14px var(--mono);color:var(--muted)}
+.line .lt{font:700 17px var(--mono);text-align:right}
 .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.qty button{border:0;background:var(--sunk);width:26px;height:28px;font-weight:800}
-.qty input{width:34px;height:28px;border:0;text-align:center;background:var(--panel);font:600 13px var(--mono);-moz-appearance:textfield}
+.qty button{border:0;background:var(--sunk);width:36px;height:38px;font-weight:800;font-size:20px}
+.qty input{width:42px;height:38px;font-size:16px!important;border:0;text-align:center;background:var(--panel);font:600 13px var(--mono);-moz-appearance:textfield}
 .qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{-webkit-appearance:none}
 .rm{border:0;background:none;color:var(--red);font-weight:800;font-size:17px;padding:0}
 .empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:14px}
-.totals{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px}
+.totals{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:17px}
 .totals .v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
-.totals .grand{font:800 22px var(--display);color:var(--green);padding-top:6px;border-top:2px solid var(--ink)}
+.totals .grand{font:800 30px var(--display);color:var(--green);padding-top:6px;border-top:2px solid var(--ink)}
 .adj{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pair{display:flex;gap:4px}
 .pair select{width:58px!important;flex:none}
 .bill-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.bill-actions .wide{grid-column:1 / -1;padding:12px;font-size:16px}
-.note{font-size:12px;color:var(--muted);margin:0}
+.bill-actions .wide{grid-column:1 / -1;padding:15px;font-size:20px}
+.bill-actions .btn{padding:12px;font-size:17px}
+.note{font-size:14px;color:var(--muted);margin:0}
 
 /* History + summary */
 .daybar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
@@ -149,7 +160,7 @@ aside.bill{background:var(--panel);border:1px solid var(--line);border-radius:12
 .daybar h2{margin:0 auto 0 0;font:800 24px var(--display)}
 .daybar .search{flex:1 1 180px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:0}
 .table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
-table.orders{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+table.orders{width:100%;border-collapse:collapse;font-size:16px;min-width:680px}
 table.orders th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);background:var(--sunk)}
 table.orders td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 table.orders tr.void td{color:var(--muted);text-decoration:line-through}
@@ -159,14 +170,14 @@ table.orders .num{text-align:right;font-family:var(--mono);font-variant-numeric:
 .pill.cash{background:var(--green-soft);border-color:var(--green);color:var(--green)}
 .pill.upi{color:var(--blue);border-color:var(--blue)}
 .pill.void{background:var(--red-soft);border-color:var(--red);color:var(--red)}
-.items-sm{font-size:12px;color:var(--muted);margin-top:2px}
+.items-sm{font-size:14px;color:var(--muted);margin-top:2px}
 td.act{white-space:nowrap}
 td.act .btn{margin-left:4px}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:800}
-.kpi .v{font:800 28px/1.1 var(--display);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .v{font:800 34px/1.1 var(--display);margin-top:4px;font-variant-numeric:tabular-nums}
 .kpi.hero{background:var(--green);border-color:var(--green);color:var(--green-ink)}
 .kpi.hero .k{color:inherit;opacity:.85}
 .kpi .s{font-size:12px;color:var(--muted)}
@@ -175,11 +186,11 @@ td.act .btn{margin-left:4px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
 .panel h3{margin:0 0 10px;font:800 18px var(--display)}
 .bars{display:flex;flex-direction:column;gap:7px}
-.bar{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
+.bar{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:15px}
 .bar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .bar .track{height:12px;background:var(--sunk);border-radius:4px;overflow:hidden}
 .bar .fill{height:100%;background:var(--green);border-radius:4px}
-.bar .val{font:600 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar .val{font:600 14px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .hours{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:8px;border-bottom:1px solid var(--line)}
 .hours .h{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
 .hours .col{width:100%;background:var(--yellow);border-radius:4px 4px 0 0;min-height:2px}
@@ -192,7 +203,17 @@ td.act .btn{margin-left:4px}
 .week .d .col{width:100%;background:var(--green);border-radius:4px 4px 0 0;min-height:2px;opacity:.55}
 .week .d.sel .col{opacity:1}
 
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-weight:800;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:calc(100% - 32px)}
+.billbar{display:none}
+@media (max-width:920px){
+  .billbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--green);color:var(--green-ink);border:0;font:800 18px var(--body);
+    padding:14px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .billbar[hidden]{display:none!important}
+  .billbar b{background:var(--yellow);color:var(--yellow-ink);border-radius:8px;padding:4px 12px}
+  #view-billing{padding-bottom:80px}
+  .toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+}
+.toast{font-size:16px!important;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-weight:800;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:calc(100% - 32px)}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}.item:active{transform:none}}
 
@@ -217,6 +238,7 @@ td.act .btn{margin-left:4px}
       <button role="tab" data-tab="billing" aria-selected="true">Billing</button>
       <button role="tab" data-tab="history" aria-selected="false">Orders</button>
       <button role="tab" data-tab="summary" aria-selected="false">Day summary</button>
+      <button id="sizeBtn" title="Text size">Aa <span id="sizeLabel">L</span></button>
       <button id="printerBtn" title="Printer settings">🖨 <span id="printerState">Printer</span></button>
       <button id="logoutBtn" title="Log out of this device">Log out</button>
     </nav>
@@ -321,6 +343,7 @@ td.act .btn{margin-left:4px}
   </form>
 </div>
 <div id="printArea"></div>
+<button class="billbar" id="billbar" hidden><span id="billbarText">View bill</span><b id="billbarTotal">₹0</b></button>
 <div class="toast" id="toast" role="status"></div>
 <div id="modalRoot"></div>
 
@@ -429,6 +452,22 @@ function nextNo(){ const os=dayOrders(dayKey()); return os.reduce((m,o)=>Math.ma
 /* ---------------- Billing ---------------- */
 let manage=false, activeCat="All", query="";
 const cats=()=>[...new Set(menu.map(i=>i.cat))];
+const CAT_IMG=[["pizza","pizza"],["garlic","pizza"],["burger","burger"],["sandwich","sandwich"],["pasta","pasta"],["nacho","nachos"],["fries","fries"],["fry","fries"],["milkshake","milkshake"],["shake","milkshake"],["coffee","coldcoffee"],["combo","combos"]];
+function imgFor(i){
+  if(i.img) return "/api/index?route="+encodeURIComponent("img/"+i.id)+"&v="+encodeURIComponent(i.img);
+  const c=(i.cat||"").toLowerCase(); const hit=CAT_IMG.find(([k])=>c.includes(k)); return hit?"/img/"+hit[1]+".jpg":"";
+}
+function picHtml(i,cls="pic"){ const u=imgFor(i); return u?`<img class="${cls}" src="${u}" alt="" loading="lazy">`:`<div class="${cls==="pic"?"ph":cls}">${esc((i.name||"?")[0])}</div>` }
+async function fileToJpeg(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,bad)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>bad(new Error("That file isn't a photo."));im.src=url});
+    const max=480, k=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL("image/jpeg",0.8);
+  } finally { URL.revokeObjectURL(url) }
+}
 
 function renderCats(){
   const list=["All",...cats()]; if(!list.includes(activeCat)) activeCat="All";
@@ -446,14 +485,17 @@ function renderMenu(){
     if(!items.length) return "";
     const body= manage
       ? `<div class="edit-list">${items.map(i=>`<div class="edit-row" data-id="${i.id}">
+          ${picHtml(i,"thumb")}
           <input aria-label="Item name" data-f="name" value="${esc(i.name)}">
           <input aria-label="Price" data-f="price" type="number" min="0" value="${i.price}">
           <button class="btn danger sm" data-act="del">Delete</button>
           <input class="desc-in" aria-label="Description" data-f="desc" placeholder="Description (optional)" value="${esc(i.desc)}">
+          <span class="photo-actions"><label class="btn sm">📷 Photo<input type="file" accept="image/*" data-act="photo"></label>${i.img?`<button class="btn sm" data-act="nophoto">Remove</button>`:""}</span>
         </div>`).join("")}</div>`
       : `<div class="grid">${items.map(i=>{const b=cart.find(c=>c.id===i.id);return `<button class="item" data-id="${i.id}">
-          ${b?`<span class="inbill">×${b.qty}</span>`:""}<span class="name">${esc(i.name)}</span>
-          ${i.desc?`<span class="desc">${esc(i.desc)}</span>`:""}<span class="price">${money(i.price)}</span></button>`}).join("")}</div>`;
+          ${picHtml(i)}${b?`<span class="inbill">×${b.qty}</span>`:""}
+          <span class="body"><span class="name">${esc(i.name)}</span>
+          ${i.desc?`<span class="desc">${esc(i.desc)}</span>`:""}<span class="price">${money(i.price)}</span></span></button>`}).join("")}</div>`;
     return `<section class="cat"><h2>${esc(cat)} <span class="count">${items.length} items</span></h2>${body}</section>`;
   }).join("");
   $("#menu").innerHTML=html||`<p class="empty">Nothing matches “${esc(query)}”.</p>`;
@@ -488,6 +530,8 @@ function renderBill(){
   h+=`<span class="grand">Total</span><span class="v grand">${money(t.total)}</span>`;
   $("#totals").innerHTML=h;
   $("#saveReceipt").disabled=$("#saveOnly").disabled=!cart.length;
+  $("#billbar").hidden=!cart.length||tab!=="billing";
+  $("#billbarText").textContent=`View bill · ${t.items} item${t.items===1?"":"s"}`; $("#billbarTotal").textContent=money(t.total);
 }
 
 let saving=false;
@@ -627,6 +671,11 @@ function openPrinterSettings(){
   $("#mClose").onclick=closeModal; $("#mbg").onclick=e=>{if(e.target.id==="mbg")closeModal()};
 }
 $("#printerBtn").addEventListener("click",openPrinterSettings);
+const SIZES=[["M",0.9],["L",1],["XL",1.15],["XXL",1.3]];
+let sizeIdx=(()=>{const v=ls("a2z_size");return Number.isInteger(v)&&SIZES[v]?v:1})();
+function applySize(){ document.documentElement.style.setProperty("--ui-zoom",SIZES[sizeIdx][1]); $("#sizeLabel").textContent=SIZES[sizeIdx][0] }
+$("#sizeBtn").addEventListener("click",()=>{ sizeIdx=(sizeIdx+1)%SIZES.length; ls("a2z_size",sizeIdx); applySize(); toast("Text size: "+SIZES[sizeIdx][0]) });
+applySize();
 updatePrinterState();
 
 /* ---------------- Receipts (PDF + text) ---------------- */
@@ -831,6 +880,7 @@ let tab="billing";
 function setTab(t){
   tab=t; $$("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
   ["billing","history","summary"].forEach(v=>$("#view-"+v).hidden=v!==t);
+  $("#billbar").hidden=!cart.length||t!=="billing";
   if(t==="history"){ store.watchDay(histDay); renderHistory() }
   if(t==="summary"){ store.watchDay(sumDay); renderSummary() }
   try{ history.replaceState(null,"",t==="billing"?location.pathname:"#"+t) }catch(e){}
@@ -873,15 +923,29 @@ $("#sumBody").addEventListener("click",e=>{
   if(e.target.id==="sumCopy") copyText(summaryText(sumDay));
 });
 
-$("#menu").addEventListener("click",e=>{
+$("#menu").addEventListener("click",async e=>{
   if(e.target.id==="loadPoster"){ menu=defaultMenu(); store.saveMenu(); renderAll(); toast("Poster menu loaded"); return }
   const card=e.target.closest(".item"); if(card) return addToCart(card.dataset.id);
+  const np=e.target.closest("[data-act=nophoto]");
+  if(np){ const id=np.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id);
+    try{ await api("/api/img/"+id,{method:"DELETE"}); it.img=""; await store.saveMenu(); toast("Photo removed") }catch(err){ toast("Couldn't remove the photo.") } return }
   const b=e.target.closest("[data-act=del]"); if(!b) return;
   if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Sure?"; setTimeout(()=>{b.dataset.confirm="";b.textContent="Delete"},2500); return }
   const id=b.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id);
   menu=menu.filter(i=>i.id!==id); store.saveMenu(); renderAll(); toast(`Deleted “${it.name}”`);
 });
-$("#menu").addEventListener("change",e=>{
+$("#menu").addEventListener("change",async e=>{
+  if(e.target.dataset.act==="photo"){
+    const file=e.target.files&&e.target.files[0]; if(!file) return;
+    const id=e.target.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id); if(!it) return;
+    try{
+      toast("Uploading photo…");
+      const data=await fileToJpeg(file);
+      await api("/api/img/"+id,{method:"PUT",body:{data}});
+      it.img=Date.now().toString(36); await store.saveMenu(); toast("Photo saved for "+it.name);
+    }catch(err){ if(err.code!==401) toast(err.message||"Couldn't upload the photo.") }
+    return;
+  }
   const f=e.target.dataset.f; if(!f) return;
   const id=e.target.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id); if(!it) return;
   let v=e.target.value.trim();
@@ -936,6 +1000,7 @@ $("#clearBill").addEventListener("click",e=>{
   b.dataset.confirm=""; b.textContent="Clear"; cart=[]; saveCart(); renderBill(); renderMenu(); toast("Bill cleared");
 });
 $("#saveReceipt").addEventListener("click",()=>saveOrder(true));
+$("#billbar").addEventListener("click",()=>$("aside.bill").scrollIntoView({behavior:"smooth",block:"start"}));
 $("#saveOnly").addEventListener("click",()=>saveOrder(false));
 
 // day rollover: start a fresh day after midnight

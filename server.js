@@ -7,7 +7,7 @@ const { safeHandle, send, store, init } = require("./lib/app");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, "public");
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".json": "application/json" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".json": "application/json" };
 
 function serveStatic(req, res, pathname) {
   let file = path.normalize(path.join(PUBLIC, decodeURIComponent(pathname)));
