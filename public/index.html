@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6b2a">
+<title>A2Z Billing Counter</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: green shop bar with three tabs (Billing · Orders · Day summary). Billing = menu grid + live bill; stacks on phones. */
+:root{
+  --bg:#f5f7ee; --panel:#ffffff; --sunk:#eef2e5; --ink:#1d2a1a; --muted:#64705b; --line:#dde3d0;
+  --green:#1f6b2a; --green-ink:#ffffff; --green-soft:#e2f0dc; --yellow:#f5c518; --yellow-ink:#231f05;
+  --red:#c2372c; --red-soft:#fbe3e0; --blue:#2a5f9e;
+  --display:"Baloo 2","Trebuchet MS",sans-serif;
+  --body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121810; --panel:#1b2318; --sunk:#151c13; --ink:#ecf2e6; --muted:#9fab94; --line:#2d3a28;
+  --green:#5fb866; --green-ink:#0e1a0c; --green-soft:#21331d; --yellow:#f5c518; --yellow-ink:#231f05;
+  --red:#ff7b6f; --red-soft:#3a1d1a; --blue:#8bb8ef; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#121810; --panel:#1b2318; --sunk:#151c13; --ink:#ecf2e6; --muted:#9fab94; --line:#2d3a28;
+  --green:#5fb866; --green-ink:#0e1a0c; --green-soft:#21331d; --yellow:#f5c518; --yellow-ink:#231f05;
+  --red:#ff7b6f; --red-soft:#3a1d1a; --blue:#8bb8ef; color-scheme:dark }
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+.login{position:fixed;inset:0;background:var(--green);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.login form{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.login h1{margin:0;font:800 30px/1 var(--display);color:var(--green)}
+.login h1 span{color:var(--yellow-ink);background:var(--yellow);padding:0 6px;border-radius:6px}
+.login input{font:600 28px var(--mono);text-align:center;letter-spacing:.4em;padding:10px;border:2px solid var(--line);border-radius:10px;background:var(--sunk)}
+.login .err{color:var(--red);font-weight:700;font-size:14px;min-height:1.2em;margin:0}
+#printArea{display:none}
+.pset{display:flex;flex-direction:column;gap:10px}
+.pset .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer}
+.pset .opt:has(input:checked){border-color:var(--green);background:var(--green-soft)}
+.pset .opt input{margin-top:4px}
+.pset .opt b{display:block}
+.pset .opt span{font-size:12px;color:var(--muted)}
+.pstatus{font-size:13px;font-weight:700}
+.pstatus.ok{color:var(--green)} .pstatus.bad{color:var(--red)}
+@media print{
+  @page{size:80mm auto;margin:3mm}
+  body{background:#fff!important;color:#000!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;width:74mm;margin:0 auto;font:12px/1.35 "Courier New",monospace;color:#000}
+  #printArea .c{text-align:center}
+  #printArea h1{font:bold 17px "Courier New",monospace;margin:0}
+  #printArea .hr{border-top:1px dashed #000;margin:5px 0}
+  #printArea table{width:100%;border-collapse:collapse}
+  #printArea td{vertical-align:top;padding:1px 0}
+  #printArea .r{text-align:right;white-space:nowrap}
+  #printArea .big td{font-weight:bold;font-size:15px}
+}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
+
+header.top{background:var(--green);color:var(--green-ink)}
+header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand h1{margin:0;font:800 26px/1 var(--display)}
+.brand h1 span{color:var(--yellow)}
+.tag{background:var(--yellow);color:var(--yellow-ink);font-weight:800;font-size:11px;padding:2px 8px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase}
+nav.tabs{display:flex;gap:4px;background:rgba(0,0,0,.18);padding:4px;border-radius:10px;flex-wrap:wrap}
+nav.tabs button{border:0;background:transparent;color:inherit;padding:7px 14px;border-radius:7px;font-weight:800}
+nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--yellow-ink)}
+.status{font-size:12px;opacity:.9}
+
+.banner{background:var(--red-soft);color:var(--ink);border:1px solid var(--red);border-radius:8px;padding:8px 12px;margin-top:12px;font-size:13px}
+
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 12px;font-weight:800}
+.btn:hover{border-color:var(--green)}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.btn.yellow{background:var(--yellow);border-color:var(--yellow);color:var(--yellow-ink)}
+.btn.danger{color:var(--red)}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.view{padding-block:16px}
+.billing{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px}
+@media (max-width:920px){.billing{grid-template-columns:1fr}}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.toolbar input{flex:1 1 200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:800}
+.chip[aria-pressed="true"]{background:var(--green);color:var(--green-ink);border-color:var(--green)}
+section.cat{margin-bottom:18px}
+section.cat h2{font:800 20px/1 var(--display);margin:0 0 8px;color:var(--green);display:flex;align-items:baseline;gap:8px}
+.count{font:600 12px var(--body);color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:72px;position:relative}
+.item:hover{border-color:var(--green)}
+.item:active{transform:scale(.98)}
+.item .name{font-weight:800;line-height:1.25;padding-right:28px}
+.item .desc{font-size:12px;color:var(--muted)}
+.item .price{margin-top:auto;font:600 14px var(--mono);color:var(--green)}
+.inbill{position:absolute;top:7px;right:8px;background:var(--yellow);color:var(--yellow-ink);font:700 11px var(--mono);border-radius:99px;padding:1px 7px}
+
+.edit-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.edit-row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:6px;align-items:center}
+.edit-row input{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk)}
+.edit-row .desc-in{grid-column:1 / 3;font-size:12px}
+.add-box{background:var(--green-soft);border:1px dashed var(--green);border-radius:10px;padding:12px;margin-bottom:16px}
+.add-box h3{margin:0 0 8px;font:800 17px var(--display);color:var(--green)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800;color:var(--muted);min-width:0}
+label.f input,label.f select{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk);min-width:0;width:100%}
+
+aside.bill{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;align-self:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:12px}
+@media (max-width:920px){aside.bill{position:static}}
+.bill-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bill-head h2{margin:0;font:800 22px var(--display)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lines{display:flex;flex-direction:column;border-top:1px solid var(--line);max-height:40vh;overflow:auto}
+.line{display:grid;grid-template-columns:minmax(0,1fr) auto 70px 22px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.line .ln{font-weight:800;font-size:14px;line-height:1.2}
+.line .lp{font:12px var(--mono);color:var(--muted)}
+.line .lt{font:600 14px var(--mono);text-align:right}
+.qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.qty button{border:0;background:var(--sunk);width:26px;height:28px;font-weight:800}
+.qty input{width:34px;height:28px;border:0;text-align:center;background:var(--panel);font:600 13px var(--mono);-moz-appearance:textfield}
+.qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{-webkit-appearance:none}
+.rm{border:0;background:none;color:var(--red);font-weight:800;font-size:17px;padding:0}
+.empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:14px}
+.totals{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px}
+.totals .v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.totals .grand{font:800 22px var(--display);color:var(--green);padding-top:6px;border-top:2px solid var(--ink)}
+.adj{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair{display:flex;gap:4px}
+.pair select{width:58px!important;flex:none}
+.bill-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bill-actions .wide{grid-column:1 / -1;padding:12px;font-size:16px}
+.note{font-size:12px;color:var(--muted);margin:0}
+
+/* History + summary */
+.daybar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.daybar input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.daybar h2{margin:0 auto 0 0;font:800 24px var(--display)}
+.daybar .search{flex:1 1 180px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:0}
+.table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table.orders{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+table.orders th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);background:var(--sunk)}
+table.orders td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+table.orders tr.void td{color:var(--muted);text-decoration:line-through}
+table.orders tr.void td.act{text-decoration:none}
+table.orders .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);text-decoration:none}
+.pill.cash{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.pill.upi{color:var(--blue);border-color:var(--blue)}
+.pill.void{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.items-sm{font-size:12px;color:var(--muted);margin-top:2px}
+td.act{white-space:nowrap}
+td.act .btn{margin-left:4px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:800}
+.kpi .v{font:800 28px/1.1 var(--display);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi.hero{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.kpi.hero .k{color:inherit;opacity:.85}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.hero .s{color:inherit;opacity:.85}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.panel h3{margin:0 0 10px;font:800 18px var(--display)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(0,130px) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
+.bar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.bar .track{height:12px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;background:var(--green);border-radius:4px}
+.bar .val{font:600 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hours{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:8px;border-bottom:1px solid var(--line)}
+.hours .h{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.hours .col{width:100%;background:var(--yellow);border-radius:4px 4px 0 0;min-height:2px}
+.hours .col.zero{background:var(--line)}
+.hlabels{display:flex;gap:4px;font:10px var(--mono);color:var(--muted);margin-top:4px}
+.hlabels span{flex:1;text-align:center;min-width:0}
+.summary-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.week{display:flex;gap:6px;align-items:flex-end;height:110px}
+.week .d{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;font:10px var(--mono);color:var(--muted);min-width:0;border:0;background:none;padding:0}
+.week .d .col{width:100%;background:var(--green);border-radius:4px 4px 0 0;min-height:2px;opacity:.55}
+.week .d.sel .col{opacity:1}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-weight:800;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}.item:active{transform:none}}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}
+.modal{background:var(--panel);border-radius:14px;padding:18px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.modal h3{margin:0;font:800 22px var(--display);color:var(--green)}
+.modal pre{margin:0;background:var(--sunk);border-radius:8px;padding:10px;font:12px/1.4 var(--mono);white-space:pre-wrap;max-height:40vh;overflow:auto}
+.modal .row{display:flex;gap:8px;flex-wrap:wrap}
+.modal .row .btn{flex:1}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>A2Z <span>Food Corner</span></h1>
+      <span class="tag">Pure Veg</span>
+      <span class="status" id="syncStatus">Connecting…</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="billing" aria-selected="true">Billing</button>
+      <button role="tab" data-tab="history" aria-selected="false">Orders</button>
+      <button role="tab" data-tab="summary" aria-selected="false">Day summary</button>
+      <button id="printerBtn" title="Printer settings">🖨 <span id="printerState">Printer</span></button>
+      <button id="logoutBtn" title="Log out of this device">Log out</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner" id="localBanner" hidden>Can't reach the server. Check the internet connection. Bills can't be saved until it's back.</div>
+
+  <!-- BILLING -->
+  <div class="view" id="view-billing">
+    <div class="billing">
+      <div style="min-width:0">
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="Search menu… (press / )" autocomplete="off">
+          <button class="btn" id="manageBtn" aria-pressed="false">✎ Manage menu</button>
+        </div>
+        <div class="cats" id="cats"></div>
+
+        <div class="add-box" id="addBox" hidden>
+          <h3>Add a new item</h3>
+          <form class="form-grid" id="addForm">
+            <label class="f">Item name<input id="newName" required placeholder="e.g. Paneer Wrap"></label>
+            <label class="f">Price (₹)<input id="newPrice" type="number" min="0" step="1" required placeholder="99"></label>
+            <label class="f">Category<select id="newCat"></select></label>
+            <label class="f" id="newCatNameWrap" hidden>New category<input id="newCatName" placeholder="e.g. Wraps"></label>
+            <label class="f">Description<input id="newDesc" placeholder="optional"></label>
+            <button class="btn primary" type="submit">Add item</button>
+          </form>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
+            <span class="note">Edits save as soon as you leave the field. Old bills keep the price they were billed at.</span>
+            <button class="btn danger sm" id="resetMenu" type="button" style="margin-left:auto">Reset to poster menu</button>
+          </div>
+        </div>
+
+        <div id="menu"></div>
+      </div>
+
+      <aside class="bill" aria-label="Current bill">
+        <div class="bill-head">
+          <h2>New Bill</h2>
+          <span class="mono muted" id="billNo">#1</span>
+        </div>
+        <div class="fields">
+          <label class="f">Customer<input id="custName" placeholder="Walk-in"></label>
+          <label class="f">Phone<input id="custPhone" inputmode="tel" placeholder="optional"></label>
+          <label class="f">Order type<select id="orderType"><option>Dine-in</option><option>Takeaway</option><option>Delivery</option></select></label>
+          <label class="f">Payment<select id="payMode"><option>Cash</option><option>UPI</option><option>Card</option></select></label>
+        </div>
+        <div class="lines" id="lines"></div>
+        <div class="adj">
+          <label class="f">Discount<span class="pair"><input id="discVal" type="number" min="0" value="0"><select id="discType"><option value="flat">₹</option><option value="pct">%</option></select></span></label>
+          <label class="f">GST<select id="gst"><option value="0">No GST</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option></select></label>
+        </div>
+        <div class="totals" id="totals"></div>
+        <div class="bill-actions">
+          <button class="btn yellow wide" id="saveReceipt">Save &amp; print bill</button>
+          <button class="btn primary" id="saveOnly">Save order</button>
+          <button class="btn danger" id="clearBill">Clear</button>
+        </div>
+        <p class="note">Tap menu items to add them. Every saved bill goes into Orders and the Day summary. Bill number is given when you save.</p>
+      </aside>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="view" id="view-history" hidden>
+    <div class="daybar">
+      <h2 id="histTitle">Orders</h2>
+      <button class="btn sm" data-shift="-1" aria-label="Previous day">◀</button>
+      <input type="date" id="histDate">
+      <button class="btn sm" data-shift="1" aria-label="Next day">▶</button>
+      <button class="btn sm" data-today>Today</button>
+    </div>
+    <div class="daybar">
+      <input class="search" id="histSearch" type="search" placeholder="Search bill no, customer, phone or item">
+      <select id="histPay" class="btn sm"><option value="">All payments</option><option>Cash</option><option>UPI</option><option>Card</option></select>
+    </div>
+    <div id="histBody"></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="view" id="view-summary" hidden>
+    <div class="daybar">
+      <h2 id="sumTitle">Day summary</h2>
+      <button class="btn sm" data-shift="-1" aria-label="Previous day">◀</button>
+      <input type="date" id="sumDate">
+      <button class="btn sm" data-shift="1" aria-label="Next day">▶</button>
+      <button class="btn sm" data-today>Today</button>
+    </div>
+    <div id="sumBody"></div>
+  </div>
+</div>
+
+<div class="login" id="login" hidden>
+  <form id="loginForm">
+    <h1>A2Z <span>Food Corner</span></h1>
+    <p class="muted" style="margin:0">Enter the shop PIN to open the billing counter.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="Shop PIN" required>
+    <p class="err" id="loginErr"></p>
+    <button class="btn primary" type="submit" style="padding:12px;font-size:16px">Open billing</button>
+  </form>
+</div>
+<div id="printArea"></div>
+<div class="toast" id="toast" role="status"></div>
+<div id="modalRoot"></div>
+
+<script>
+const SHOP={name:"A2Z FOOD CORNER",tagline:"Pure Veg | Delicious | Fresh | Hygienic",address:"Sai Mandir Chowk, Yavatmal Road, Wani"};
+const DEFAULT_MENU=[
+ ["Pizza",[["Margherita",119],["Corn Cheese",149],["Deluxe Veggies",179],["Tandoori Paneer",199],["Garlic Bread",89]]],
+ ["Burger",[["Veg Cheese",59],["Crunchy",79],["Mexican/Paneer Tikka",99],["Maharaja",149]]],
+ ["Sandwich",[["Bombay Masala/Ribbon",69],["Veg Cheese Grilled",89],["Coleslaw/Choco Cheese",99],["Jungle/Panini/Special Loaded",129]]],
+ ["Pasta",[["Alfredo Pasta",149],["Pesto Spaghetti Pasta",159],["Indian Fusion Pasta",139]]],
+ ["Nachos",[["Nachos with Salsa",99],["Mexican Loaded Nachos with Dip",149]]],
+ ["French Fries",[["Salted Fries",69],["Peri Peri Fries",89],["Cheese Loaded Fries",129]]],
+ ["Milkshake",[["Monster Milkshake",129],["Kitkat Milkshake",119],["Oreo Milkshake",109],["Chocolate Thick Shake",109],["Pan Masala Milkshake",119]]],
+ ["Cold Coffee",[["Classic Cold Coffee",79],["Caramel Frappuccino",119],["Thikk Cold Coffee",99],["A2Z Special Cold Coffee",139]]],
+ ["Combos",[["Combo 1",199,"Margherita Pizza + French Fries + Cold Coffee"],["Combo 2",169,"Veg Cheese Burger + French Fries + Cold Drink"],["Combo 3",159,"Grilled Sandwich + French Fries + Cold Coffee"],["Combo 4",189,"Alfredo Pasta + Garlic Bread + Cold Drink"],["Combo 5",229,"Nachos with Salsa + Veg Burger + Cold Drink"]]]
+];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const r2=n=>Math.round(n*100)/100;
+const money=n=>"₹"+r2(n).toLocaleString("en-IN",{maximumFractionDigits:2});
+const rs=n=>"Rs. "+r2(n).toFixed(2);
+const dayKey=(d=new Date())=>d.toLocaleDateString("en-CA");
+const shiftDay=(k,n)=>{const d=new Date(k+"T12:00:00");d.setDate(d.getDate()+n);return dayKey(d)};
+const prettyDay=k=>new Date(k+"T12:00:00").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+const timeOf=ts=>new Date(ts).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+const billLabel=o=>`${o.day.slice(2).replace(/-/g,"")}-${String(o.no).padStart(3,"0")}`;
+function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),1900)}
+function defaultMenu(){const a=[];DEFAULT_MENU.forEach(([c,l])=>l.forEach(([n,p,d])=>a.push({id:uid()+a.length,cat:c,name:n,price:p,desc:d||""})));return a}
+
+/* ---------------- Storage: talks to our server ---------------- */
+let menu=[], menuLoaded=false;
+const days={};            // dayKey -> {orders:{id:order}}
+const watched=new Set();
+let cart=ls("a2z_cart")||[];
+
+async function api(path,opts={}){
+  const r=await fetch(path,{method:opts.method||"GET",headers:opts.body?{"Content-Type":"application/json"}:{},body:opts.body?JSON.stringify(opts.body):undefined,credentials:"same-origin"});
+  if(r.status===401 && !path.endsWith("/login")){ showLogin(); throw {code:401} }
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw {code:r.status,message:j.error||"Request failed"};
+  return j;
+}
+function setOnline(ok){ $("#syncStatus").textContent=ok?"● Synced":"● Offline"; $("#localBanner").hidden=ok }
+
+const store={
+  async init(){
+    try{ await api("/api/session") }catch(e){ if(e.code===401) return; setOnline(false); setTimeout(()=>store.init(),5000); return }
+    hideLogin(); setOnline(true);
+    await this.loadMenu();
+    this.watchDay(dayKey());
+    if(!store.timer) store.timer=setInterval(()=>store.refresh(),15000);
+  },
+  async refresh(){
+    if(document.hidden || !$("#login").hidden) return;
+    try{ await this.loadMenu(true); await Promise.all([...watched].map(k=>this.loadDay(k))); setOnline(true) }catch(e){ if(e.code!==401) setOnline(false) }
+  },
+  async loadMenu(quiet){
+    const j=await api("/api/menu");
+    if(j.items===null){ menu=defaultMenu(); menuLoaded=true; await this.saveMenu(); }
+    else{
+      const changed=JSON.stringify(j.items)!==JSON.stringify(menu);
+      menu=j.items; menuLoaded=true;
+      if(changed && !(quiet && manage && document.activeElement && document.activeElement.closest(".edit-row"))){ renderCats(); renderMenu(); renderBill() }
+    }
+  },
+  async saveMenu(){
+    renderCats(); renderMenu();
+    try{ const j=await api("/api/menu",{method:"PUT",body:{items:menu}}); menu=j.items; setOnline(true) }
+    catch(e){ if(e.code!==401) toast("Couldn't save the menu. Check the connection and try again.") }
+  },
+  watchDay(k){ if(!watched.has(k)){ watched.add(k); this.loadDay(k).catch(()=>{}) } },
+  async loadDay(k){
+    const j=await api("/api/days/"+k);
+    const next={orders:Object.fromEntries(j.orders.map(o=>[o.id,o]))};
+    const changed=JSON.stringify(next)!==JSON.stringify(days[k]);
+    days[k]=next; if(changed) onDayChange(k);
+    return next;
+  },
+  async fetchDay(k){ if(days[k]) return days[k]; try{ return await this.loadDay(k) }catch(e){ return {orders:{}} } },
+  async createOrder(o){
+    const j=await api("/api/orders",{method:"POST",body:o});
+    const k=j.order.day; days[k]=days[k]||{orders:{}}; days[k]={orders:{...days[k].orders,[j.order.id]:j.order}}; onDayChange(k);
+    return j.order;
+  },
+  async setStatus(o,status){
+    const j=await api("/api/orders/"+o.id,{method:"PATCH",body:{status}});
+    const k=j.order.day; days[k]={orders:{...(days[k]||{orders:{}}).orders,[j.order.id]:j.order}}; onDayChange(k);
+  }
+};
+function showLogin(){ $("#login").hidden=false; setTimeout(()=>$("#pin").focus(),50) }
+function hideLogin(){ $("#login").hidden=true }
+$("#loginForm").addEventListener("submit",async e=>{
+  e.preventDefault(); $("#loginErr").textContent="";
+  try{ await api("/api/login",{method:"POST",body:{pin:$("#pin").value}}); $("#pin").value=""; store.init() }
+  catch(err){ $("#loginErr").textContent=err.message||"Couldn't log in." }
+});
+$("#logoutBtn").addEventListener("click",async()=>{ try{ await api("/api/logout",{method:"POST"}) }catch(e){} showLogin() });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) store.refresh() });
+
+function dayOrders(k){ return Object.values((days[k]||{}).orders||{}).sort((a,b)=>a.ts-b.ts) }
+function nextNo(){ const os=dayOrders(dayKey()); return os.reduce((m,o)=>Math.max(m,o.no||0),0)+1 }
+
+/* ---------------- Billing ---------------- */
+let manage=false, activeCat="All", query="";
+const cats=()=>[...new Set(menu.map(i=>i.cat))];
+
+function renderCats(){
+  const list=["All",...cats()]; if(!list.includes(activeCat)) activeCat="All";
+  $("#cats").innerHTML=list.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${c===activeCat}">${esc(c)}</button>`).join("");
+  const cur=$("#newCat").value;
+  $("#newCat").innerHTML=cats().map(c=>`<option>${esc(c)}</option>`).join("")+`<option value="__new">+ New category…</option>`;
+  if(cur && cats().includes(cur)) $("#newCat").value=cur;
+}
+function renderMenu(){
+  if(!menuLoaded){ $("#menu").innerHTML=`<p class="empty">Loading menu…</p>`; return }
+  if(!menu.length){ $("#menu").innerHTML=`<div class="empty"><p>The menu is empty.</p><button class="btn primary" id="loadPoster">Load the A2Z poster menu (35 items)</button><p class="note" style="margin-top:8px">Or open “Manage menu” to add your own items.</p></div>`; return }
+  const q=query.trim().toLowerCase();
+  const html=cats().filter(c=>activeCat==="All"||c===activeCat).map(cat=>{
+    const items=menu.filter(i=>i.cat===cat&&(!q||(i.name+" "+i.desc).toLowerCase().includes(q)));
+    if(!items.length) return "";
+    const body= manage
+      ? `<div class="edit-list">${items.map(i=>`<div class="edit-row" data-id="${i.id}">
+          <input aria-label="Item name" data-f="name" value="${esc(i.name)}">
+          <input aria-label="Price" data-f="price" type="number" min="0" value="${i.price}">
+          <button class="btn danger sm" data-act="del">Delete</button>
+          <input class="desc-in" aria-label="Description" data-f="desc" placeholder="Description (optional)" value="${esc(i.desc)}">
+        </div>`).join("")}</div>`
+      : `<div class="grid">${items.map(i=>{const b=cart.find(c=>c.id===i.id);return `<button class="item" data-id="${i.id}">
+          ${b?`<span class="inbill">×${b.qty}</span>`:""}<span class="name">${esc(i.name)}</span>
+          ${i.desc?`<span class="desc">${esc(i.desc)}</span>`:""}<span class="price">${money(i.price)}</span></button>`}).join("")}</div>`;
+    return `<section class="cat"><h2>${esc(cat)} <span class="count">${items.length} items</span></h2>${body}</section>`;
+  }).join("");
+  $("#menu").innerHTML=html||`<p class="empty">Nothing matches “${esc(query)}”.</p>`;
+}
+function saveCart(){ ls("a2z_cart",cart) }
+function addToCart(id){
+  const it=menu.find(i=>i.id===id); if(!it) return;
+  const l=cart.find(c=>c.id===id);
+  if(l) l.qty++; else cart.push({id,name:it.name,price:+it.price,cat:it.cat,qty:1});
+  saveCart(); renderBill(); renderMenu();
+}
+function calc(lines,discVal,discType,rate){
+  const sub=lines.reduce((s,l)=>s+l.price*l.qty,0);
+  const dv=Math.max(0,+discVal||0);
+  const disc=discType==="pct"?sub*Math.min(dv,100)/100:Math.min(dv,sub);
+  const gst=(sub-disc)*rate/100, raw=sub-disc+gst, total=Math.round(raw);
+  return {sub:r2(sub),disc:r2(disc),gst:r2(gst),round:r2(total-raw),total,items:lines.reduce((s,l)=>s+l.qty,0)};
+}
+function curCalc(){ return calc(cart,$("#discVal").value,$("#discType").value,+$("#gst").value) }
+function renderBill(){
+  $("#billNo").textContent="#"+billLabel({day:dayKey(),no:nextNo()});
+  $("#lines").innerHTML=cart.length?cart.map((l,i)=>`<div class="line" data-i="${i}">
+      <div><div class="ln">${esc(l.name)}</div><div class="lp">${money(l.price)} each</div></div>
+      <div class="qty"><button data-q="-1" aria-label="One less">−</button><input type="number" min="1" value="${l.qty}" aria-label="Quantity"><button data-q="1" aria-label="One more">+</button></div>
+      <div class="lt">${money(l.price*l.qty)}</div><button class="rm" aria-label="Remove ${esc(l.name)}">×</button></div>`).join("")
+    :`<div class="empty">No items yet.<br>Tap a menu item to start.</div>`;
+  const t=curCalc(), rate=+$("#gst").value;
+  let h=`<span>Subtotal (${t.items} items)</span><span class="v">${money(t.sub)}</span>`;
+  if(t.disc>0) h+=`<span>Discount</span><span class="v">− ${money(t.disc)}</span>`;
+  if(rate) h+=`<span>CGST ${rate/2}%</span><span class="v">${money(t.gst/2)}</span><span>SGST ${rate/2}%</span><span class="v">${money(t.gst/2)}</span>`;
+  if(Math.abs(t.round)>=.01) h+=`<span>Round off</span><span class="v">${t.round>0?"+":"−"} ${money(Math.abs(t.round))}</span>`;
+  h+=`<span class="grand">Total</span><span class="v grand">${money(t.total)}</span>`;
+  $("#totals").innerHTML=h;
+  $("#saveReceipt").disabled=$("#saveOnly").disabled=!cart.length;
+}
+
+let saving=false;
+async function saveOrder(withReceipt){
+  if(!cart.length||saving) return; saving=true;
+  const k=dayKey(); await store.fetchDay(k);
+  const t=curCalc(), rate=+$("#gst").value;
+  const o={id:uid(),day:k,no:nextNo(),ts:Date.now(),customer:$("#custName").value.trim(),phone:$("#custPhone").value.trim(),
+    type:$("#orderType").value,pay:$("#payMode").value,lines:cart.map(l=>({name:l.name,cat:l.cat||"",price:l.price,qty:l.qty})),
+    sub:t.sub,disc:t.disc,gstRate:rate,gst:t.gst,round:t.round,total:t.total,status:"paid"};
+  try{
+    const saved=await store.createOrder(o); Object.assign(o,saved);
+    cart=[]; saveCart(); $("#custName").value=$("#custPhone").value=""; $("#discVal").value=0;
+    renderBill(); renderMenu();
+    toast(`Bill ${billLabel(o)} saved · ${money(o.total)}`);
+    if(withReceipt){ if(prn.auto) printOrder(o); else showReceipt(o) }
+  }catch(e){ if(e.code!==401) toast(e.message&&e.code===400?e.message:"Couldn't save the order. Check the connection and try again. The bill is still here.") }
+  saving=false;
+}
+
+/* ---------------- Thermal printer (ESC/POS over Bluetooth) ---------------- */
+const PRN_DEFAULT={method:"system",width:58,auto:true};
+let prn={...PRN_DEFAULT,...(ls("a2z_printer")||{})};
+const savePrn=()=>ls("a2z_printer",prn);
+// GATT services used by common BLE thermal printers
+const BT_SERVICES=["000018f0-0000-1000-8000-00805f9b34fb","e7810a71-73ae-499d-8c15-faa9aef0c3f2","0000ff00-0000-1000-8000-00805f9b34fb",
+  "0000ffe0-0000-1000-8000-00805f9b34fb","49535343-fe7d-4ae5-8fa9-9fafd205e455","0000fee7-0000-1000-8000-00805f9b34fb",
+  "0000ae30-0000-1000-8000-00805f9b34fb","0000ff80-0000-1000-8000-00805f9b34fb"];
+let btDevice=null, btChar=null;
+
+function escpos(o,width){
+  const W=width===80?48:32, out=[];
+  const asc=t=>String(t).replace(/₹/g,"Rs.").normalize("NFKD").replace(/[^\x20-\x7E\n]/g,"");
+  const raw=(...b)=>out.push(...b);
+  const txt=t=>{ for(const ch of asc(t)) out.push(ch.charCodeAt(0)) };
+  const line=t=>{ txt(t); raw(10) };
+  const pad=(a,b)=>{a=asc(a);b=asc(b);if(a.length+b.length+1>W)a=a.slice(0,W-b.length-1);return a+" ".repeat(W-a.length-b.length)+b};
+  const center=v=>raw(27,97,v?1:0), bold=v=>raw(27,69,v?1:0), big=v=>raw(29,33,v?0x11:0);
+  const hr=c=>line((c||"-").repeat(W));
+  raw(27,64); // init
+  center(1);
+  if(o.status==="void"){ bold(1); line("*** VOID ***"); bold(0) }
+  big(1); bold(1); line("A2Z FOOD CORNER"); big(0); bold(0);
+  line("Pure Veg - Fresh - Hygienic"); line(SHOP.address);
+  center(0); hr();
+  line(pad("Bill: "+billLabel(o),new Date(o.ts).toLocaleDateString("en-IN")));
+  line(pad(o.type,timeOf(o.ts)));
+  if(o.customer) line("Customer: "+o.customer); if(o.phone) line("Phone: "+o.phone);
+  hr(); bold(1); line(pad("Item","Amount")); bold(0);
+  o.lines.forEach(l=>{ const nm=asc(l.name); line(nm.length>W?nm.slice(0,W):nm); line(pad(`  ${l.qty} x ${l.price}`,(l.price*l.qty).toFixed(2))) });
+  hr(); line(pad("Subtotal",o.sub.toFixed(2)));
+  if(o.disc) line(pad("Discount","-"+o.disc.toFixed(2)));
+  if(o.gstRate){ line(pad(`CGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2))); line(pad(`SGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2))) }
+  if(Math.abs(o.round)>=.01) line(pad("Round off",o.round.toFixed(2)));
+  hr("=");
+  raw(29,33,0x01); bold(1); line(pad("TOTAL","Rs."+o.total.toFixed(2)).slice(0,W)); bold(0); raw(29,33,0);
+  line(pad("Paid via",o.pay)); hr();
+  center(1); line("100% Pure Veg - Freshly Prepared"); bold(1); line("Thank you! Visit again."); bold(0);
+  raw(27,100,4);          // feed 4 lines
+  raw(29,86,66,0);        // cut (ignored by printers without a cutter)
+  return new Uint8Array(out);
+}
+function testTicket(){ return {day:dayKey(),no:0,ts:Date.now(),type:"Test print",customer:"",phone:"",pay:"-",
+  lines:[{name:"Margherita",price:119,qty:1},{name:"Cold Coffee",price:79,qty:2}],sub:277,disc:0,gstRate:0,gst:0,round:0,total:277,status:"paid"} }
+
+async function btConnect(pick){
+  if(!navigator.bluetooth) throw new Error("This browser can't use Bluetooth. Use Chrome on Android, Windows or Mac (not iPhone).");
+  if(pick||!btDevice){
+    btDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:BT_SERVICES});
+    btDevice.addEventListener("gattserverdisconnected",()=>{ btChar=null; updatePrinterState() });
+  }
+  const server=btDevice.gatt.connected?btDevice.gatt:await btDevice.gatt.connect();
+  btChar=null;
+  const services=await server.getPrimaryServices();
+  for(const sv of services){
+    for(const c of await sv.getCharacteristics()){
+      if(c.properties.writeWithoutResponse||c.properties.write){ btChar=c; break }
+    }
+    if(btChar) break;
+  }
+  if(!btChar) throw new Error("Connected, but this printer has no print channel Chrome can use. Try the RawBT option.");
+  prn.btName=btDevice.name||"Bluetooth printer"; savePrn(); updatePrinterState();
+}
+async function btWrite(bytes){
+  if(!btChar){ if(!btDevice) throw new Error("No printer connected. Open 🖨 Printer and tap Connect."); await btConnect(false) }
+  const fast=btChar.properties.writeWithoutResponse && btChar.writeValueWithoutResponse;
+  for(let i=0;i<bytes.length;i+=100){
+    const chunk=bytes.slice(i,i+100);
+    if(fast) await btChar.writeValueWithoutResponse(chunk); else await btChar.writeValue(chunk);
+    await new Promise(r=>setTimeout(r,fast?25:5));
+  }
+}
+function rawbtPrint(bytes){
+  let b=""; bytes.forEach(x=>b+=String.fromCharCode(x));
+  window.location.href="rawbt:base64,"+btoa(b);
+}
+async function printOrder(o){
+  try{
+    if(prn.method==="bt"){ await btWrite(escpos(o,prn.width)); toast("Sent to "+(prn.btName||"printer")) }
+    else if(prn.method==="rawbt"){ rawbtPrint(escpos(o,prn.width)) }
+    else printReceipt(o);
+  }catch(e){ toast(e.message||"Couldn't print. Check the printer is on and nearby."); openPrinterSettings() }
+}
+function updatePrinterState(){
+  const el=$("#printerState"); if(!el) return;
+  el.textContent= prn.method==="bt" ? (btChar?(prn.btName||"Connected"):"Not connected") : prn.method==="rawbt"?"RawBT":"Printer";
+}
+function openPrinterSettings(){
+  const bt=!!navigator.bluetooth;
+  $("#modalRoot").innerHTML=`<div class="modal-bg" id="mbg"><div class="modal" role="dialog" aria-label="Printer settings">
+    <h3>Printer</h3>
+    <div class="pset">
+      <label class="opt"><input type="radio" name="pm" value="bt" ${prn.method==="bt"?"checked":""}><div><b>Bluetooth thermal printer (direct)</b><span>Connects straight from Chrome. Works with most BLE receipt printers. Needs Chrome on Android, Windows or Mac.${bt?"":" <b>Not available in this browser.</b>"}</span></div></label>
+      <label class="opt"><input type="radio" name="pm" value="rawbt" ${prn.method==="rawbt"?"checked":""}><div><b>Bluetooth via RawBT app (Android)</b><span>For printers that only pair in phone Bluetooth settings. Install the free “RawBT” app from Play Store, pair the printer there once.</span></div></label>
+      <label class="opt"><input type="radio" name="pm" value="system" ${prn.method==="system"?"checked":""}><div><b>Normal print window</b><span>For USB printers or printers already installed on this computer.</span></div></label>
+      <div class="fields">
+        <label class="f">Paper width<select id="pWidth"><option value="58" ${prn.width==58?"selected":""}>58 mm (2 inch)</option><option value="80" ${prn.width==80?"selected":""}>80 mm (3 inch)</option></select></label>
+        <label class="f">After saving a bill<select id="pAuto"><option value="1" ${prn.auto?"selected":""}>Print automatically</option><option value="0" ${prn.auto?"":"selected"}>Show receipt first</option></select></label>
+      </div>
+      <div id="btRow" ${prn.method==="bt"?"":"hidden"}>
+        <p class="pstatus ${btChar?"ok":"bad"}" id="btStatus">${btChar?"● Connected to "+esc(prn.btName):"● Not connected"+(prn.btName?" (last used: "+esc(prn.btName)+")":"")}</p>
+        <button class="btn primary" id="btConnect" style="width:100%">${btChar?"Connect a different printer":"Connect printer"}</button>
+        <p class="note" style="margin-top:6px">Turn the printer on, then tap Connect and pick it from the list. You'll need to tap Connect again after reloading the page.</p>
+      </div>
+    </div>
+    <div class="row"><button class="btn" id="pTest">Test print</button><button class="btn yellow" id="mClose">Done</button></div>
+  </div></div>`;
+  $$('input[name=pm]').forEach(r=>r.onchange=()=>{ prn.method=r.value; savePrn(); $("#btRow").hidden=prn.method!=="bt"; updatePrinterState() });
+  $("#pWidth").onchange=e=>{ prn.width=+e.target.value; savePrn() };
+  $("#pAuto").onchange=e=>{ prn.auto=e.target.value==="1"; savePrn() };
+  $("#btConnect").onclick=async()=>{
+    $("#btStatus").textContent="Looking for printers…"; $("#btStatus").className="pstatus";
+    try{ await btConnect(true); $("#btStatus").textContent="● Connected to "+prn.btName; $("#btStatus").className="pstatus ok"; $("#btConnect").textContent="Connect a different printer" }
+    catch(e){ $("#btStatus").textContent=e.name==="NotFoundError"?"No printer chosen.":(e.message||"Couldn't connect."); $("#btStatus").className="pstatus bad" }
+  };
+  $("#pTest").onclick=()=>printOrder(testTicket());
+  $("#mClose").onclick=closeModal; $("#mbg").onclick=e=>{if(e.target.id==="mbg")closeModal()};
+}
+$("#printerBtn").addEventListener("click",openPrinterSettings);
+updatePrinterState();
+
+/* ---------------- Receipts (PDF + text) ---------------- */
+function receiptText(o){
+  const W=32, pad=(a,b)=>{a=String(a);b=String(b);return a+" ".repeat(Math.max(1,W-a.length-b.length))+b};
+  const L=[SHOP.name,SHOP.address,"-".repeat(W),pad("Bill "+billLabel(o),new Date(o.ts).toLocaleDateString("en-IN")),pad(o.type,timeOf(o.ts))];
+  if(o.customer) L.push("Customer: "+o.customer); if(o.phone) L.push("Phone: "+o.phone);
+  L.push("-".repeat(W));
+  o.lines.forEach(l=>{L.push(l.name);L.push(pad(`  ${l.qty} x ${l.price}`,(l.price*l.qty).toFixed(2)))});
+  L.push("-".repeat(W),pad("Subtotal",o.sub.toFixed(2)));
+  if(o.disc) L.push(pad("Discount","-"+o.disc.toFixed(2)));
+  if(o.gstRate) L.push(pad(`CGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2)),pad(`SGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2)));
+  if(Math.abs(o.round)>=.01) L.push(pad("Round off",o.round.toFixed(2)));
+  L.push("=".repeat(W),pad("TOTAL","Rs. "+o.total.toFixed(2)),pad("Paid via",o.pay),"-".repeat(W),"Thank you! Visit again.");
+  if(o.status==="void") L.unshift("*** VOID ***");
+  return L.join("\n");
+}
+function receiptPDF(o){
+  const {jsPDF}=window.jspdf;
+  const lines=o.lines.length;
+  const h=95+lines*9+(o.disc?5:0)+(o.gstRate?10:0)+(o.customer?5:0)+(o.phone?5:0);
+  const doc=new jsPDF({unit:"mm",format:[80,h]});
+  const X=5,R=75; let y=9;
+  const C=(t,s=9,b=false)=>{doc.setFont("courier",b?"bold":"normal");doc.setFontSize(s);doc.text(t,40,y,{align:"center"});y+=s*.45+1.2};
+  const row=(a,b,s=9,bold=false)=>{doc.setFont("courier",bold?"bold":"normal");doc.setFontSize(s);doc.text(String(a),X,y);doc.text(String(b),R,y,{align:"right"});y+=s*.45+1.4};
+  const hr=()=>{doc.setLineDashPattern([1,1],0);doc.line(X,y-1.5,R,y-1.5);y+=2};
+  if(o.status==="void") C("*** VOID ***",11,true);
+  C(SHOP.name,14,true); C(SHOP.tagline,7); C(SHOP.address,8); y+=1; hr();
+  row("Bill: "+billLabel(o),new Date(o.ts).toLocaleDateString("en-IN"));
+  row(o.type,timeOf(o.ts));
+  if(o.customer) row("Customer: "+o.customer.slice(0,22),"");
+  if(o.phone) row("Phone: "+o.phone,"");
+  hr();
+  doc.setFont("courier","bold");doc.setFontSize(8);doc.text("ITEM",X,y);doc.text("QTY",50,y,{align:"right"});doc.text("AMOUNT",R,y,{align:"right"});y+=4.5;
+  o.lines.forEach(l=>{
+    doc.setFont("courier","normal");doc.setFontSize(9);
+    doc.text(doc.splitTextToSize(l.name,38)[0],X,y);doc.text(String(l.qty),50,y,{align:"right"});doc.text((l.price*l.qty).toFixed(2),R,y,{align:"right"});y+=4;
+    doc.setFontSize(7);doc.text("@ "+l.price.toFixed(2),X+2,y);y+=5;
+  });
+  hr(); row("Subtotal",o.sub.toFixed(2));
+  if(o.disc) row("Discount","-"+o.disc.toFixed(2));
+  if(o.gstRate){row(`CGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2));row(`SGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2))}
+  if(Math.abs(o.round)>=.01) row("Round off",o.round.toFixed(2));
+  hr(); row("TOTAL",rs(o.total),12,true); row("Paid via",o.pay,8);
+  hr(); C("100% Pure Veg - Freshly Prepared",8); C("Thank you! Visit again.",9,true);
+  return doc.output("blob");
+}
+function saveFile(filename,data){
+  const blob=data instanceof Blob?data:new Blob([data],{type:filename.endsWith(".csv")?"text/csv":"text/plain"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000); toast("Downloaded "+filename);
+}
+function printReceipt(o){
+  const r=(a,b)=>`<tr><td>${a}</td><td class="r">${b}</td></tr>`;
+  $("#printArea").innerHTML=`${o.status==="void"?'<div class="c"><b>*** VOID ***</b></div>':""}
+    <div class="c"><h1>${SHOP.name}</h1><div>${SHOP.tagline}</div><div>${SHOP.address}</div></div><div class="hr"></div>
+    <table>${r("Bill: "+billLabel(o),new Date(o.ts).toLocaleDateString("en-IN"))}${r(esc(o.type),timeOf(o.ts))}
+    ${o.customer?r("Customer: "+esc(o.customer),""):""}${o.phone?r("Phone: "+esc(o.phone),""):""}</table><div class="hr"></div>
+    <table><tr><td><b>Item</b></td><td class="r"><b>Qty</b></td><td class="r"><b>Amt</b></td></tr>
+    ${o.lines.map(l=>`<tr><td>${esc(l.name)}<br><small>@ ${l.price.toFixed(2)}</small></td><td class="r">${l.qty}</td><td class="r">${(l.price*l.qty).toFixed(2)}</td></tr>`).join("")}</table>
+    <div class="hr"></div><table>${r("Subtotal",o.sub.toFixed(2))}${o.disc?r("Discount","-"+o.disc.toFixed(2)):""}
+    ${o.gstRate?r(`CGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2))+r(`SGST ${o.gstRate/2}%`,(o.gst/2).toFixed(2)):""}
+    ${Math.abs(o.round)>=.01?r("Round off",o.round.toFixed(2)):""}</table><div class="hr"></div>
+    <table class="big">${r("TOTAL","Rs. "+o.total.toFixed(2))}</table><div>Paid via: ${esc(o.pay)}</div><div class="hr"></div>
+    <div class="c">100% Pure Veg - Freshly Prepared<br><b>Thank you! Visit again.</b></div>`;
+  $("#printArea").style.width=(prn.width===80?74:52)+"mm";
+  document.getElementById("pageSize")?.remove();
+  const st=document.createElement("style"); st.id="pageSize"; st.textContent=`@media print{@page{size:${prn.width}mm auto;margin:2mm}}`; document.head.appendChild(st);
+  setTimeout(()=>window.print(),50);
+}
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); toast("Copied") }
+  catch(e){ const p=$("#modalRoot pre"); if(p){const r=document.createRange();r.selectNodeContents(p);const s=getSelection();s.removeAllRanges();s.addRange(r)} toast("Press Ctrl+C to copy the selected text") }
+}
+function showReceipt(o){
+  const txt=receiptText(o);
+  $("#modalRoot").innerHTML=`<div class="modal-bg" id="mbg"><div class="modal" role="dialog" aria-label="Receipt">
+    <h3>Bill ${billLabel(o)} · ${money(o.total)}</h3>
+    <pre>${esc(txt)}</pre>
+    <div class="row"><button class="btn yellow" id="mPrint">🖨 Print</button><button class="btn" id="mPdf">PDF</button><button class="btn" id="mCopy">Copy for WhatsApp</button></div>
+    <p class="note">Change printer, paper size or auto-print from 🖨 in the top bar.</p>
+    <button class="btn" id="mClose">Close</button></div></div>`;
+  $("#mPrint").onclick=()=>printOrder(o);
+  $("#mPdf").onclick=()=>saveFile(`A2Z-bill-${billLabel(o)}.pdf`,receiptPDF(o));
+  $("#mCopy").onclick=()=>copyText(txt);
+  $("#mClose").onclick=closeModal; $("#mbg").onclick=e=>{if(e.target.id==="mbg")closeModal()};
+}
+function closeModal(){ $("#modalRoot").innerHTML="" }
+
+/* ---------------- History ---------------- */
+let histDay=dayKey(), sumDay=dayKey();
+function findOrder(k,id){ return ((days[k]||{}).orders||{})[id] }
+function renderHistory(){
+  $("#histDate").value=histDay; $("#histTitle").textContent=histDay===dayKey()?"Today's orders":prettyDay(histDay);
+  if(!days[histDay]){ $("#histBody").innerHTML=`<p class="empty">Loading…</p>`; return }
+  const q=$("#histSearch").value.trim().toLowerCase(), pf=$("#histPay").value;
+  let os=dayOrders(histDay).reverse();
+  if(pf) os=os.filter(o=>o.pay===pf);
+  if(q) os=os.filter(o=>[billLabel(o),String(o.no),o.customer,o.phone,...o.lines.map(l=>l.name)].join(" ").toLowerCase().includes(q));
+  if(!os.length){ $("#histBody").innerHTML=`<div class="empty">${dayOrders(histDay).length?"No orders match this search.":"No orders on "+prettyDay(histDay)+"."}</div>`; return }
+  $("#histBody").innerHTML=`<div class="table-wrap"><table class="orders"><thead><tr>
+    <th>Bill</th><th>Time</th><th>Customer</th><th>Items</th><th>Type</th><th>Payment</th><th class="num">Total</th><th></th></tr></thead><tbody>
+    ${os.map(o=>`<tr class="${o.status==="void"?"void":""}" data-id="${o.id}">
+      <td class="mono">${billLabel(o)}</td><td class="mono">${timeOf(o.ts)}</td>
+      <td>${esc(o.customer||"Walk-in")}${o.phone?`<div class="items-sm">${esc(o.phone)}</div>`:""}</td>
+      <td>${o.lines.reduce((s,l)=>s+l.qty,0)} items<div class="items-sm">${esc(o.lines.map(l=>l.qty+"× "+l.name).join(", "))}</div></td>
+      <td>${esc(o.type)}</td>
+      <td>${o.status==="void"?`<span class="pill void">Void</span>`:`<span class="pill ${o.pay.toLowerCase()}">${esc(o.pay)}</span>`}</td>
+      <td class="num">${money(o.total)}</td>
+      <td class="act"><button class="btn sm" data-a="view">Receipt</button><button class="btn sm ${o.status==="void"?"":"danger"}" data-a="void">${o.status==="void"?"Restore":"Void"}</button></td>
+    </tr>`).join("")}</tbody></table></div>
+    <p class="note" style="margin-top:8px">Voided bills stay in history but are left out of the day's totals.</p>`;
+}
+
+/* ---------------- Summary ---------------- */
+function summarize(k){
+  const all=dayOrders(k), os=all.filter(o=>o.status!=="void");
+  const s={orders:os.length,voids:all.length-os.length,net:0,gross:0,disc:0,gst:0,items:0,pay:{},type:{},item:{},cat:{},hour:Array(24).fill(0)};
+  os.forEach(o=>{
+    s.net+=o.total; s.gross+=o.sub; s.disc+=o.disc; s.gst+=o.gst;
+    s.pay[o.pay]=(s.pay[o.pay]||0)+o.total; s.type[o.type]=(s.type[o.type]||0)+o.total;
+    s.hour[new Date(o.ts).getHours()]+=o.total;
+    o.lines.forEach(l=>{ s.items+=l.qty;
+      const it=s.item[l.name]||(s.item[l.name]={qty:0,amt:0}); it.qty+=l.qty; it.amt+=l.qty*l.price;
+      const c=l.cat||"Other"; s.cat[c]=(s.cat[c]||0)+l.qty*l.price; });
+  });
+  return s;
+}
+function bars(obj,fmt=money,limit=99){
+  const e=Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,limit); const max=Math.max(1,...e.map(x=>x[1]));
+  return e.length?`<div class="bars">${e.map(([k,v])=>`<div class="bar"><span class="lbl" title="${esc(k)}">${esc(k)}</span><span class="track"><span class="fill" style="width:${v/max*100}%"></span></span><span class="val">${fmt(v)}</span></div>`).join("")}</div>`:`<p class="note">No sales yet.</p>`;
+}
+let weekCache={};
+async function renderSummary(){
+  $("#sumDate").value=sumDay; $("#sumTitle").textContent=sumDay===dayKey()?"Today's summary":prettyDay(sumDay);
+  if(!days[sumDay]){ $("#sumBody").innerHTML=`<p class="empty">Loading…</p>`; return }
+  const s=summarize(sumDay);
+  const topItems=Object.entries(s.item).sort((a,b)=>b[1].qty-a[1].qty||b[1].amt-a[1].amt).slice(0,8);
+  const hrs=[]; for(let h=8;h<24;h++) hrs.push(h);
+  const hmax=Math.max(1,...hrs.map(h=>s.hour[h]));
+  const last7=[...Array(7)].map((_,i)=>shiftDay(sumDay,i-6));
+  $("#sumBody").innerHTML=`
+    <div class="kpis">
+      <div class="kpi hero"><div class="k">Net sales</div><div class="v">${money(s.net)}</div><div class="s">${s.voids?s.voids+" voided bill"+(s.voids>1?"s":"")+" excluded":"after discount & GST"}</div></div>
+      <div class="kpi"><div class="k">Orders</div><div class="v">${s.orders}</div><div class="s">${s.items} items sold</div></div>
+      <div class="kpi"><div class="k">Average bill</div><div class="v">${money(s.orders?s.net/s.orders:0)}</div><div class="s">per order</div></div>
+      <div class="kpi"><div class="k">Discounts given</div><div class="v">${money(s.disc)}</div><div class="s">GST collected ${money(s.gst)}</div></div>
+    </div>
+    <div class="panels">
+      <div class="panel"><h3>Cash in hand vs online</h3>${bars(s.pay)}</div>
+      <div class="panel"><h3>Order type</h3>${bars(s.type)}</div>
+      <div class="panel"><h3>Top items</h3>${topItems.length?`<div class="bars">${(()=>{const m=Math.max(...topItems.map(x=>x[1].qty));return topItems.map(([n,v])=>`<div class="bar"><span class="lbl" title="${esc(n)}">${esc(n)}</span><span class="track"><span class="fill" style="width:${v.qty/m*100}%"></span></span><span class="val">${v.qty} · ${money(v.amt)}</span></div>`).join("")})()}</div>`:`<p class="note">No sales yet.</p>`}</div>
+      <div class="panel"><h3>Sales by category</h3>${bars(s.cat)}</div>
+      <div class="panel"><h3>Sales by hour</h3>
+        <div class="hours">${hrs.map(h=>`<div class="h" title="${h}:00 – ${money(s.hour[h])}"><div class="col ${s.hour[h]?"":"zero"}" style="height:${s.hour[h]/hmax*100}%"></div></div>`).join("")}</div>
+        <div class="hlabels">${hrs.map(h=>`<span>${h%2?"":(h>12?h-12:h)+(h>=12?"p":"a")}</span>`).join("")}</div></div>
+      <div class="panel"><h3>Last 7 days</h3><div class="week" id="week">${last7.map(k=>`<button class="d ${k===sumDay?"sel":""}" data-day="${k}" title="${prettyDay(k)}"><span class="wv"></span><span class="col" style="height:2px"></span><span>${new Date(k+"T12:00:00").toLocaleDateString("en-IN",{weekday:"short"})}</span></button>`).join("")}</div></div>
+    </div>
+    <div class="summary-actions">
+      <button class="btn yellow" id="sumPdf" ${s.orders?"":"disabled"}>Download day report (PDF)</button>
+      <button class="btn" id="sumCsv" ${dayOrders(sumDay).length?"":"disabled"}>Download orders (CSV)</button>
+      <button class="btn" id="sumCopy" ${s.orders?"":"disabled"}>Copy summary text</button>
+    </div>`;
+  const vals=await Promise.all(last7.map(async k=>{ if(k===sumDay) return summarize(k).net; if(weekCache[k]!==undefined && k!==dayKey()) return weekCache[k]; await store.fetchDay(k); return weekCache[k]=summarize(k).net }));
+  const wm=Math.max(1,...vals);
+  $$("#week .d").forEach((el,i)=>{ el.querySelector(".col").style.height=Math.max(2,vals[i]/wm*80)+"px"; el.querySelector(".wv").textContent=vals[i]?"₹"+Math.round(vals[i]/100)/10+"k":"" });
+}
+function summaryText(k){
+  const s=summarize(k);
+  const L=[`A2Z Food Corner - Day summary`,prettyDay(k),"",`Net sales: ${rs(s.net)}`,`Orders: ${s.orders}  |  Items: ${s.items}`,`Average bill: ${rs(s.orders?s.net/s.orders:0)}`,`Discounts: ${rs(s.disc)}  |  GST: ${rs(s.gst)}`];
+  if(s.voids) L.push(`Voided bills: ${s.voids}`);
+  L.push("","Payments:",...Object.entries(s.pay).map(([k,v])=>`  ${k}: ${rs(v)}`));
+  L.push("","Order type:",...Object.entries(s.type).map(([k,v])=>`  ${k}: ${rs(v)}`));
+  L.push("","Top items:",...Object.entries(s.item).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10).map(([n,v])=>`  ${v.qty} x ${n}  (${rs(v.amt)})`));
+  return L.join("\n");
+}
+function summaryPDF(k){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"}); const s=summarize(k);
+  let y=18; const t=(x,txt,sz=10,b=false,al)=>{doc.setFont("helvetica",b?"bold":"normal");doc.setFontSize(sz);doc.text(String(txt),x,y,al?{align:al}:undefined)};
+  const nl=(n=6)=>{y+=n; if(y>280){doc.addPage();y=18}};
+  t(15,"A2Z FOOD CORNER",18,true); nl(7); t(15,SHOP.address,9); nl(8);
+  t(15,"Day summary - "+prettyDay(k),13,true); nl(10);
+  [["Net sales",rs(s.net)],["Orders",s.orders],["Items sold",s.items],["Average bill",rs(s.orders?s.net/s.orders:0)],["Gross (before discount)",rs(s.gross)],["Discounts",rs(s.disc)],["GST collected",rs(s.gst)],["Voided bills",s.voids]].forEach(([a,b])=>{t(15,a);t(110,b,10,true,"right");nl()});
+  nl(4); t(15,"Payments",12,true); nl(); Object.entries(s.pay).forEach(([a,b])=>{t(20,a);t(110,rs(b),10,false,"right");nl()});
+  nl(4); t(15,"Order type",12,true); nl(); Object.entries(s.type).forEach(([a,b])=>{t(20,a);t(110,rs(b),10,false,"right");nl()});
+  nl(4); t(15,"Items sold",12,true); nl(); t(20,"Item",9,true);t(130,"Qty",9,true,"right");t(170,"Amount",9,true,"right");nl();
+  Object.entries(s.item).sort((a,b)=>b[1].qty-a[1].qty).forEach(([n,v])=>{t(20,n,9);t(130,v.qty,9,false,"right");t(170,rs(v.amt),9,false,"right");nl(5)});
+  nl(4); t(15,"Bills",12,true); nl(); t(20,"Bill",9,true);t(50,"Time",9,true);t(70,"Customer",9,true);t(120,"Payment",9,true);t(170,"Total",9,true,"right");nl();
+  dayOrders(k).forEach(o=>{t(20,billLabel(o)+(o.status==="void"?" (void)":""),9);t(50,timeOf(o.ts),9);t(70,(o.customer||"Walk-in").slice(0,24),9);t(120,o.pay,9);t(170,rs(o.total),9,false,"right");nl(5)});
+  return doc.output("blob");
+}
+function ordersCSV(k){
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const rows=[["Bill","Date","Time","Customer","Phone","Type","Payment","Status","Items","Subtotal","Discount","GST","Round off","Total"]];
+  dayOrders(k).forEach(o=>rows.push([billLabel(o),o.day,timeOf(o.ts),o.customer,o.phone,o.type,o.pay,o.status,o.lines.map(l=>l.qty+" x "+l.name).join("; "),o.sub,o.disc,o.gst,o.round,o.total]));
+  return rows.map(r=>r.map(q).join(",")).join("\n");
+}
+
+/* ---------------- Tabs & wiring ---------------- */
+let tab="billing";
+function setTab(t){
+  tab=t; $$("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+  ["billing","history","summary"].forEach(v=>$("#view-"+v).hidden=v!==t);
+  if(t==="history"){ store.watchDay(histDay); renderHistory() }
+  if(t==="summary"){ store.watchDay(sumDay); renderSummary() }
+  try{ history.replaceState(null,"",t==="billing"?location.pathname:"#"+t) }catch(e){}
+}
+function onDayChange(k){
+  if(k===dayKey()) renderBill();
+  if(tab==="history"&&k===histDay) renderHistory();
+  if(tab==="summary"&&k===sumDay) renderSummary();
+}
+function renderAll(){ renderCats(); renderMenu(); renderBill() }
+
+$("nav.tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(b)setTab(b.dataset.tab)});
+function wireDaybar(view,getDay,setDay){
+  const root=$("#view-"+view);
+  root.addEventListener("click",e=>{
+    const b=e.target.closest("[data-shift],[data-today]"); if(!b) return;
+    setDay(b.dataset.today!==undefined?dayKey():shiftDay(getDay(),+b.dataset.shift));
+  });
+  root.querySelector("input[type=date]").addEventListener("change",e=>{ if(e.target.value) setDay(e.target.value) });
+}
+wireDaybar("history",()=>histDay,k=>{histDay=k;store.watchDay(k);renderHistory()});
+wireDaybar("summary",()=>sumDay,k=>{sumDay=k;store.watchDay(k);renderSummary()});
+$("#histSearch").addEventListener("input",renderHistory);
+$("#histPay").addEventListener("change",renderHistory);
+
+$("#histBody").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-a]"); if(!b) return;
+  const o=findOrder(histDay,b.closest("tr").dataset.id); if(!o) return;
+  if(b.dataset.a==="view") return showReceipt(o);
+  if(b.dataset.a==="void"){
+    if(o.status!=="void" && b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Sure?"; setTimeout(()=>{b.dataset.confirm="";b.textContent="Void"},2500); return }
+    try{ await store.setStatus(o,o.status==="void"?"paid":"void"); toast(o.status==="void"?"Bill restored":"Bill voided") }
+    catch(err){ toast("Couldn't update the bill. Try again.") }
+  }
+});
+$("#sumBody").addEventListener("click",e=>{
+  const d=e.target.closest("[data-day]"); if(d){ sumDay=d.dataset.day; store.watchDay(sumDay); renderSummary(); return }
+  if(e.target.id==="sumPdf") saveFile(`A2Z-summary-${sumDay}.pdf`,summaryPDF(sumDay));
+  if(e.target.id==="sumCsv") saveFile(`A2Z-orders-${sumDay}.csv`,ordersCSV(sumDay));
+  if(e.target.id==="sumCopy") copyText(summaryText(sumDay));
+});
+
+$("#menu").addEventListener("click",e=>{
+  if(e.target.id==="loadPoster"){ menu=defaultMenu(); store.saveMenu(); renderAll(); toast("Poster menu loaded"); return }
+  const card=e.target.closest(".item"); if(card) return addToCart(card.dataset.id);
+  const b=e.target.closest("[data-act=del]"); if(!b) return;
+  if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Sure?"; setTimeout(()=>{b.dataset.confirm="";b.textContent="Delete"},2500); return }
+  const id=b.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id);
+  menu=menu.filter(i=>i.id!==id); store.saveMenu(); renderAll(); toast(`Deleted “${it.name}”`);
+});
+$("#menu").addEventListener("change",e=>{
+  const f=e.target.dataset.f; if(!f) return;
+  const id=e.target.closest(".edit-row").dataset.id, it=menu.find(i=>i.id===id); if(!it) return;
+  let v=e.target.value.trim();
+  if(f==="price"){ v=Math.max(0,+v||0); e.target.value=v }
+  if(f==="name"&&!v){ e.target.value=it.name; return }
+  if(it[f]===v) return;
+  it[f]=v; store.saveMenu();
+  const l=cart.find(c=>c.id===id); if(l&&(f==="name"||f==="price")){ l[f]=v; saveCart(); renderBill() }
+  toast("Saved");
+});
+$("#cats").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;activeCat=b.dataset.cat;renderCats();renderMenu()});
+$("#search").addEventListener("input",e=>{query=e.target.value;renderMenu()});
+document.addEventListener("keydown",e=>{
+  if(e.key==="/"&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();setTab("billing");$("#search").focus()}
+  if(e.key==="Escape") closeModal();
+});
+$("#manageBtn").addEventListener("click",()=>{
+  manage=!manage; $("#manageBtn").setAttribute("aria-pressed",manage);
+  $("#manageBtn").textContent=manage?"✓ Done editing":"✎ Manage menu"; $("#addBox").hidden=!manage; renderMenu();
+});
+$("#newCat").addEventListener("change",e=>{$("#newCatNameWrap").hidden=e.target.value!=="__new"});
+$("#addForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  let cat=$("#newCat").value; if(cat==="__new"){ cat=$("#newCatName").value.trim(); if(!cat){ toast("Type a name for the new category"); return } }
+  const name=$("#newName").value.trim(); if(!name) return;
+  menu.push({id:uid(),cat,name,price:Math.max(0,+$("#newPrice").value||0),desc:$("#newDesc").value.trim()});
+  store.saveMenu(); e.target.reset(); $("#newCatNameWrap").hidden=true; renderAll(); $("#newCat").value=cat; toast(`Added “${name}” to ${cat}`);
+});
+$("#resetMenu").addEventListener("click",e=>{
+  const b=e.currentTarget;
+  if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Click again to reset"; setTimeout(()=>{b.dataset.confirm="";b.textContent="Reset to poster menu"},3000); return }
+  b.dataset.confirm=""; b.textContent="Reset to poster menu";
+  menu=defaultMenu(); cart=[]; saveCart(); store.saveMenu(); renderAll(); toast("Menu reset to poster prices");
+});
+$("#lines").addEventListener("click",e=>{
+  const row=e.target.closest(".line"); if(!row) return; const i=+row.dataset.i, l=cart[i];
+  if(e.target.closest(".rm")) cart.splice(i,1);
+  else if(e.target.dataset.q){ l.qty+=+e.target.dataset.q; if(l.qty<1) cart.splice(i,1) }
+  else return;
+  saveCart(); renderBill(); renderMenu();
+});
+$("#lines").addEventListener("change",e=>{
+  const row=e.target.closest(".line"); if(!row||e.target.tagName!=="INPUT") return;
+  const q=Math.floor(+e.target.value), i=+row.dataset.i;
+  if(!q||q<1) cart.splice(i,1); else cart[i].qty=q;
+  saveCart(); renderBill(); renderMenu();
+});
+["discVal","discType","gst"].forEach(id=>$("#"+id).addEventListener("input",renderBill));
+$("#clearBill").addEventListener("click",e=>{
+  const b=e.currentTarget; if(!cart.length) return;
+  if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Sure?"; setTimeout(()=>{b.dataset.confirm="";b.textContent="Clear"},2500); return }
+  b.dataset.confirm=""; b.textContent="Clear"; cart=[]; saveCart(); renderBill(); renderMenu(); toast("Bill cleared");
+});
+$("#saveReceipt").addEventListener("click",()=>saveOrder(true));
+$("#saveOnly").addEventListener("click",()=>saveOrder(false));
+
+// day rollover: start a fresh day after midnight
+setInterval(()=>{ if(!watched.has(dayKey())) { store.watchDay(dayKey()); renderBill() } },60000);
+
+renderAll();
+const h=(location.hash||"").slice(1); if(["history","summary"].includes(h)) setTab(h);
+store.init();
+</script>
+
+</body>
+</html>

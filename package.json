@@ -1,0 +1,15 @@
+{
+  "name": "a2z-billing",
+  "version": "1.0.0",
+  "description": "Billing counter for A2Z Food Corner \u2013 menu, bills, order history and day summary",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
